@@ -17,8 +17,7 @@ namespace iAhri
     internal class Program
     {
         private static readonly string Author = "iCreative";
-        private static readonly string Author2 = "Risto";
-        private static readonly string AddonName = "iAhri Revamped";
+        private static readonly string AddonName = "iAhri + additions";
         private static readonly float RefreshTime = 0.4f;
         private static readonly Dictionary<int, DamageInfo> PredictedDamage = new Dictionary<int, DamageInfo>();
         private static Menu menu;
@@ -78,7 +77,7 @@ namespace iAhri
             {
                 return;
             }
-            Chat.Print(AddonName + " made by: " + Author + " and edited by: " + Author2 + "loaded, have fun!.");
+            Chat.Print(AddonName + " made by: " + Author + "loaded, have fun!.");
             Q = new Spell.Skillshot(SpellSlot.Q, 880, SkillShotType.Linear, 250, 1700, 100)
             {
                 AllowedCollisionCount = int.MaxValue
@@ -101,8 +100,8 @@ namespace iAhri
                 Ignite = new Spell.Targeted(slot, 600);
             }
 
-            menu = MainMenu.AddMenu(AddonName, AddonName + " by " + Author2 + "v1.15");
-            menu.AddLabel(AddonName + " made by " + Author2);
+            menu = MainMenu.AddMenu(AddonName, AddonName + " by " + Author + "v1.15");
+            menu.AddLabel(AddonName + " made by " + Author);
 
             SubMenu["Combo"] = menu.AddSubMenu("Combo", "Combo");
             SubMenu["Combo"].Add("Q", new CheckBox("Use Q", true));
@@ -117,13 +116,13 @@ namespace iAhri
             SubMenu["Harass"].Add("Q", new CheckBox("Use Q", true));
             SubMenu["Harass"].Add("W", new CheckBox("Use W", false));
             SubMenu["Harass"].Add("E", new CheckBox("Use E", false));
-            SubMenu["Harass"].Add("Mana", new Slider("Min. Mana Percent:", 20, 0, 100));
+            SubMenu["Harass"].Add("Mana", new Slider("Min. Mana Percent:", 45, 0, 100));
 
             SubMenu["LaneClear"] = menu.AddSubMenu("LaneClear", "LaneClear");
             SubMenu["LaneClear"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["LaneClear"].Add("minimumHit", new Slider("Minion minions to hit:", 2, 1, 5));
-            SubMenu["LaneClear"].Add("farmStartAtLevel", new Slider("Only AA until level", 8, 1, 18));
-            SubMenu["LaneClear"].Add("Mana", new Slider("Min. Mana Percent:", 20, 0, 100));
+            SubMenu["LaneClear"].Add("minimumHit", new Slider("Minion minions to hit:", 3, 1, 6));
+            SubMenu["LaneClear"].Add("farmStartAtLevel", new Slider("Only AA until level", 4, 1, 18));
+            SubMenu["LaneClear"].Add("Mana", new Slider("Min. Mana Percent:", 60, 0, 100));
 
             SubMenu["JungleClear"] = menu.AddSubMenu("JungleClear", "JungleClear");
             SubMenu["JungleClear"].Add("Q", new CheckBox("Use Q", true));
@@ -221,12 +220,19 @@ namespace iAhri
                 {
                     JungleClear();
                 }
-            }
 
-            if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
-            {
-                Flee();
-            }
+                {
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.LaneClear))
+                    {
+                      LaneClear();
+                    }
+
+                if (Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Flee))
+                    {
+                      Flee();
+                    }
+                 }           
+             }
         }
 
         private static void KillSteal()
@@ -268,14 +274,14 @@ namespace iAhri
         private static void Combo()
         {
             var target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
-            if (target.IsValidTarget())
+            if (target.IsValidTarget() && target != null)
             {
                 if (SubMenu["Combo"]["R"].Cast<CheckBox>().CurrentValue && target != null && R.IsReady())
                 {
                     var RPred = R.GetPrediction(target);
                     var MinR = SubMenu["Combo"]["MinR"].Cast<Slider>().CurrentValue;
                     {
-                        if (RPred.CastPosition.CountEnemyChampionsInRange(400) >= MinR)
+                        if (RPred.CastPosition.CountEnemyChampionsInRange(450) >= MinR)
                         {
                             CastR(target);
                         }
@@ -332,13 +338,13 @@ namespace iAhri
                                 return;
                             }
                             if (SubMenu["Harass"]["Q"].Cast<CheckBox>().CurrentValue &&
-                                target.IsInRange(Player.Instance, Q.Range - 100))
+                                target.IsInRange(Player.Instance, Q.Range))
                             {
                                 CastQ(target);
                             }
                             if (W.IsReady() &&
                                 (SubMenu["Harass"]["W"].Cast<CheckBox>().CurrentValue &&
-                                 target.IsInRange(Player.Instance, W.Range - 150)))
+                                 target.IsInRange(Player.Instance, W.Range)))
                             {
                                 CastW(target);
                             }
