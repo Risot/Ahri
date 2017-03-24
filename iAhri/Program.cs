@@ -120,6 +120,7 @@ namespace iAhri
 
             SubMenu["LaneClear"] = menu.AddSubMenu("LaneClear", "LaneClear");
             SubMenu["LaneClear"].Add("Q", new CheckBox("Use Q", true));
+            SubMenu["LaneClear"].Add("W", new CheckBox("Use W", false));
             SubMenu["LaneClear"].Add("minimumHit", new Slider("Minion minions to hit:", 3, 1, 6));
             SubMenu["LaneClear"].Add("farmStartAtLevel", new Slider("Only AA until level", 4, 1, 18));
             SubMenu["LaneClear"].Add("Mana", new Slider("Min. Mana Percent:", 60, 0, 100));
@@ -281,9 +282,9 @@ namespace iAhri
                     var RPred = R.GetPrediction(target);
                     var MinR = SubMenu["Combo"]["MinR"].Cast<Slider>().CurrentValue;
                     {
-                        if (RPred.CastPosition.CountEnemyChampionsInRange(450) >= MinR)
+                        if (RPred.CastPosition.CountEnemyChampionsInRange(800) >= MinR)
                         {
-                            CastR(target);
+                            CastR(Player.Instance.Position.Extend(target.Position, R.Range + 250).To3D());
                         }
                         if (SubMenu["Combo"]["E"].Cast<CheckBox>().CurrentValue)
                         {
@@ -320,6 +321,11 @@ namespace iAhri
             }
         }
 
+        private static void CastR(Vector3 vector3)
+        {
+            throw new NotImplementedException();
+        }
+
         private static void Harass()
                     {
                         var target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
@@ -351,52 +357,63 @@ namespace iAhri
                         }
                     }
 
+
                     private static void Flee()
                     {
-                        if (SubMenu["Flee"]["R"].Cast<CheckBox>().CurrentValue && R.IsReady())
+                    if (SubMenu["Flee"]["R"].Cast<CheckBox>().CurrentValue && R.IsReady())
+                    return;
                         {
-                            R.Cast(mousePos);
+                        if (Player.Instance.HealthPercent <= 15 && Player.Instance.CountEnemiesInRange(R.Range) > 1)
+                        {
+                        R.Cast(mousePos);
                         }
                         if (SubMenu["Flee"]["Q"].Cast<CheckBox>().CurrentValue && Q.IsReady())
                         {
-                            var lastPos = EloBuddy.Player.Instance.ServerPosition;
+                            var lastPos = Player.Instance.ServerPosition;
                             Q.Cast(lastPos);
                         }
                     }
+        }
 
-                    private static void LaneClear()
+        private static void LaneClear()
                     {
-                        if (myHero.ManaPercent >= SubMenu["LaneClear"]["Mana"].Cast<Slider>().CurrentValue)
-                            return;
                         {
                             var minions =
-                                EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                                        myHero.ServerPosition)
+                                EntityManager.MinionsAndMonsters.GetLaneMinions()
                                     .OrderBy(o => o.Health)
-                                    .Where(c => c.IsInRange(myHero, Q.Range));
-                            if (minions != null)
+                                    .FirstOrDefault(c => c.IsValidTarget(Q.Range));
+                            if (minions != null) return;
                             {
-                                if (SubMenu["LaneClear"]["Q"].Cast<CheckBox>().CurrentValue &&
+
+                                if (W.IsReady() && minions.IsValidTarget(W.Range) && SubMenu["LaneClear"]["W"].Cast<CheckBox>().CurrentValue &&
                                     ObjectManager.Player.Level >=
                                     SubMenu["LaneClear"]["farmStartAtLevel"].Cast<Slider>().CurrentValue)
-                                {
-                                    if (Q.IsReady())
                                     {
-                                        var minimumHit = SubMenu["LaneClear"]["minimumHit"].Cast<Slider>().CurrentValue;
-                                        var a = Q.GetBestLinearCastPosition(minions);
+                                    W.Cast();
+                                    }
 
-                                        if (a.HitNumber >= minimumHit)
+
+                                 if (Q.IsReady() && minions.IsValidTarget(Q.Range) && SubMenu["LaneClear"]["Q"].Cast<CheckBox>().CurrentValue && SubMenu["LaneClear"]["Mana"].Cast<Slider>().CurrentValue < Player.Instance.ManaPercent)
+                                 {
+                                        var heh =
+                                            EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
+                                                Player.Instance.ServerPosition, Q.Range, false).ToArray();
+                                    if (heh.Length == 0) return;
+
+                                        var farmLoc = EntityManager.MinionsAndMonsters.GetLineFarmLocation(heh, Q.Width, (int)Q.Range);
+                                        if (farmLoc.HitNumber == SubMenu["LaneClear"]["minimumHit"].Cast<Slider>().CurrentValue)
                                         {
-                                            Q.Cast(a.CastPosition);
+                                            Q.Cast(farmLoc.CastPosition);
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
 
-                    private static void JungleClear()
+
+
+        private static void JungleClear()
                     {
                         if (myHero.ManaPercent >= SubMenu["JungleClear"]["Mana"].Cast<Slider>().CurrentValue)
                         {
