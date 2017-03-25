@@ -747,7 +747,6 @@ private static void KillSteal()
                         }
                         return myHero.GetSpellDamage(target, slot);
                     }
-
                     private static DamageInfo GetComboDamage(Obj_AI_Base target, bool q, bool w, bool e, bool r)
                     {
                         var comboDamage = 0f;

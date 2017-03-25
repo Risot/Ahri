@@ -196,28 +196,6 @@ namespace iAhri
                 }
             };
         }
-        public static void AddDrawFarm(Menu mainMenu)
-        {
-            drawMenu = mainMenu;
-
-            mainMenu.AddSeparator();
-            mainMenu.AddText("Draw iAhri Farm Logic");
-            mainMenu.AddBool("Draw Farm", "Draw Spell Farm Status");
-
-            Drawing.OnDraw += delegate
-            {
-                if (!Player.Instance.IsDead && !MenuGUI.IsChatOpen)
-                {
-                    if (mainMenu.GetBool("DrawFarm"))
-                    {
-                        var MePos = Drawing.WorldToScreen(Player.Instance.Position);
-
-                        Drawing.DrawText(MePos[0] - 57, MePos[1] + 48, Color.FromArgb(66, 170, 244),
-                            "Spell Farm:" + (SpellFarm ? "On" : "Off"));
-                    }
-                }
-            };
-            }
     }
 }
 
