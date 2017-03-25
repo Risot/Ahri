@@ -644,7 +644,7 @@ private static void KillSteal()
                             Drawing.DrawLine(p1, p2, Q.Width, Color.FromArgb(100, 255, 255, 255));
                         }
 
-                        if (!myHero.IsDead && SpellMenu.drawMenu.GetBool("DrawQ") && Q.IsLearned)
+                        if (!Player.Instance.IsDead && SpellMenu.drawMenu.GetBool("DrawQ") && Q.IsLearned)
                         {
                             {
                                 new Circle() {Color = Color.Lime, Radius = Q.Range}.Draw(ObjectManager.Player.Position);
