@@ -5,6 +5,7 @@ using System.Runtime.InteropServices.ComTypes;
 using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Enumerations;
+using EloBuddy.SDK.Notifications;
 using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
@@ -21,10 +22,8 @@ namespace iAhri
         private static readonly float RefreshTime = 0.4f;
         private static readonly Dictionary<int, DamageInfo> PredictedDamage = new Dictionary<int, DamageInfo>();
         private static Menu menu;
-        private static readonly Dictionary<string, Menu> SubMenu = new Dictionary<string, Menu>();
         private static Spell.Skillshot Q, W, E, R;
         private static Spell.Targeted Ignite;
-
         private static readonly Dictionary<string, object> _Q = new Dictionary<string, object>
         {
             {"MinSpeed", 400},
@@ -43,6 +42,7 @@ namespace iAhri
             {"CatchPosition", null}
         };
 
+
         private static readonly Dictionary<string, object> _E = new Dictionary<string, object>
         {
             {"LastCastTime", 0f},
@@ -50,6 +50,7 @@ namespace iAhri
         };
 
         private static readonly Dictionary<string, object> _R = new Dictionary<string, object> {{"EndTime", 0f}};
+
 
         private static AIHeroClient myHero
         {
@@ -63,7 +64,7 @@ namespace iAhri
 
         private static float Overkill
         {
-            get { return (100f + SubMenu["Misc"]["Overkill"].Cast<Slider>().CurrentValue) / 100f; }
+            get { return (100f + SpellMenu.miscMenu.GetSlider("Overkill")) / 100f; }
         }
 
         private static void Main(string[] args)
@@ -78,6 +79,7 @@ namespace iAhri
                 return;
             }
             Chat.Print(AddonName + " made by: " + Author + "loaded, have fun!.");
+            SpellMenu.init();
             Q = new Spell.Skillshot(SpellSlot.Q, 880, SkillShotType.Linear, 250, 1700, 100)
             {
                 AllowedCollisionCount = int.MaxValue
@@ -99,67 +101,6 @@ namespace iAhri
             {
                 Ignite = new Spell.Targeted(slot, 600);
             }
-
-            menu = MainMenu.AddMenu(AddonName, AddonName + " by " + Author + "v1.15");
-            menu.AddLabel(AddonName + " made by " + Author);
-
-            SubMenu["Combo"] = menu.AddSubMenu("Combo", "Combo");
-            SubMenu["Combo"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["Combo"].Add("W", new CheckBox("Use W", true));
-            SubMenu["Combo"].Add("E", new CheckBox("Use E", true));
-            SubMenu["Combo"].Add("R", new CheckBox("Use R", true));
-            SubMenu["Combo"].Add("minR", new Slider("Min Enemies To Use R", 3, 0, 5));
-            SubMenu["Combo"].Add("CatchQR", new CheckBox("Catch the Q with R", true));
-            SubMenu["Combo"].Add("CatchQRPriority", new CheckBox("Give Priority to Catch the Q with R", true));
-
-            SubMenu["Harass"] = menu.AddSubMenu("Harass", "Harass");
-            SubMenu["Harass"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["Harass"].Add("W", new CheckBox("Use W", false));
-            SubMenu["Harass"].Add("E", new CheckBox("Use E", false));
-            SubMenu["Harass"].Add("Mana", new Slider("Min. Mana Percent:", 45, 0, 100));
-
-            SubMenu["LaneClear"] = menu.AddSubMenu("LaneClear", "LaneClear");
-            SubMenu["LaneClear"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["LaneClear"].Add("W", new CheckBox("Use W", false));
-            SubMenu["LaneClear"].Add("minimumHit", new Slider("Minion minions to hit:", 3, 1, 6));
-            SubMenu["LaneClear"].Add("farmStartAtLevel", new Slider("Only AA until level", 4, 1, 18));
-            SubMenu["LaneClear"].Add("Mana", new Slider("Min. Mana Percent:", 60, 0, 100));
-
-            SubMenu["JungleClear"] = menu.AddSubMenu("JungleClear", "JungleClear");
-            SubMenu["JungleClear"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["JungleClear"].Add("W", new CheckBox("Use W", true));
-            SubMenu["JungleClear"].Add("E", new CheckBox("Use E", true));
-            SubMenu["JungleClear"].Add("Mana", new Slider("Min. Mana Percent:", 20, 0, 100));
-
-            SubMenu["KillSteal"] = menu.AddSubMenu("KillSteal", "KillSteal");
-            SubMenu["KillSteal"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["KillSteal"].Add("W", new CheckBox("Use W", true));
-            SubMenu["KillSteal"].Add("E", new CheckBox("Use E", true));
-            SubMenu["KillSteal"].Add("Ignite", new CheckBox("Use Ignite", true));
-
-            SubMenu["Flee"] = menu.AddSubMenu("Flee", "Flee");
-            SubMenu["Flee"].Add("Q", new CheckBox("Use Q", true));
-            SubMenu["Flee"].Add("R", new CheckBox("Use R", true));
-
-            SubMenu["Draw"] = menu.AddSubMenu("Drawing", "Drawing");
-            SubMenu["Draw"].Add("Line", new CheckBox("Draw line for Q orb", true));
-            SubMenu["Draw"].Add("DrawQ", new CheckBox("Draw Q radius", true));
-
-            SubMenu["Misc"] = menu.AddSubMenu("Misc", "Misc");
-            SubMenu["Misc"].Add("Overkill", new Slider("Overkill % for damage prediction", 10, 0, 100));
-            SubMenu["Misc"].Add("CatchQMovement", new CheckBox("Catch the Q with movement", false));
-            SubMenu["Misc"].Add("Gapclose", new CheckBox("Use E on gapclose spells", true));
-            SubMenu["Misc"].Add("Channeling", new CheckBox("Use E on channeling spells", true));
-            SubMenu["Misc"].Add("SkinHax", new CheckBox("Activate Skin Hack", false));
-            SubMenu["Misc"].Add("SkinID", new Slider("Choose skin ID: {0}", 4, 0, 10));
-
-
-            if (SubMenu["Misc"]["skinhax"].Cast<CheckBox>().CurrentValue)
-            {
-                Player.Instance.SetSkinId(SubMenu["Misc"]["skinID"].Cast<Slider>().CurrentValue);
-            }
-
-
             Game.OnTick += OnTick;
             GameObject.OnCreate += OnCreateObj;
             GameObject.OnDelete += OnDeleteObj;
@@ -236,7 +177,9 @@ namespace iAhri
              }
         }
 
-        private static void KillSteal()
+
+
+private static void KillSteal()
         {
             foreach (var enemy in EntityManager.Heroes.Enemies)
             {
@@ -245,23 +188,23 @@ namespace iAhri
                     var damageI = GetBestCombo(enemy);
                     if (damageI.Damage >= enemy.TotalShieldHealth())
                     {
-                        if (SubMenu["KillSteal"]["Q"].Cast<CheckBox>().CurrentValue &&
+                        if (SpellMenu.killStealMenu.GetBool("KSQ") &&
                             (Damage(enemy, Q.Slot) >= enemy.TotalShieldHealth() || damageI.Q))
                         {
                             CastQ(enemy);
                         }
-                        if (SubMenu["KillSteal"]["W"].Cast<CheckBox>().CurrentValue &&
+                        if (SpellMenu.killStealMenu.GetBool("KSW") &&
                             (Damage(enemy, W.Slot) >= enemy.TotalShieldHealth() || damageI.W))
                         {
                             CastW(enemy);
                         }
-                        if (SubMenu["KillSteal"]["E"].Cast<CheckBox>().CurrentValue &&
+                        if (SpellMenu.killStealMenu.GetBool("KSE") &&
                             (Damage(enemy, E.Slot) >= enemy.TotalShieldHealth() || damageI.E))
                         {
                             CastE(enemy);
                         }
                     }
-                    if (Ignite != null && SubMenu["KillSteal"]["Ignite"].Cast<CheckBox>().CurrentValue &&
+                    if (Ignite != null && SpellMenu.killStealMenu.GetBool("IGKS") &&
                         Ignite.IsReady() &&
                         myHero.GetSummonerSpellDamage(enemy, DamageLibrary.SummonerSpells.Ignite) >=
                         enemy.TotalShieldHealth())
@@ -277,16 +220,16 @@ namespace iAhri
             var target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
             if (target.IsValidTarget() && target != null)
             {
-                if (SubMenu["Combo"]["R"].Cast<CheckBox>().CurrentValue && target != null && R.IsReady())
+                if (SpellMenu.comboMenu.GetBool("ComboR") && target != null && R.IsReady())
                 {
                     var RPred = R.GetPrediction(target);
-                    var MinR = SubMenu["Combo"]["MinR"].Cast<Slider>().CurrentValue;
+                    var MinR = SpellMenu.comboMenu.GetSlider("minR");
                     {
                         if (RPred.CastPosition.CountEnemyChampionsInRange(800) >= MinR)
                         {
                             CastR(Player.Instance.Position.Extend(target.Position, R.Range + 250).To3D());
                         }
-                        if (SubMenu["Combo"]["E"].Cast<CheckBox>().CurrentValue)
+                        if (SpellMenu.comboMenu.GetBool("ComboE"))
                         {
                             if (E.IsReady())
                             {
@@ -301,13 +244,13 @@ namespace iAhri
                             }
 
 
-                            if (SubMenu["Combo"]["Q"].Cast<CheckBox>().CurrentValue)
+                            if (SpellMenu.comboMenu.GetBool("ComboQ"))
                             {
                                 if (Q.IsReady())
                                 {
                                     CastQ(target);
                                 }
-                                if (SubMenu["Combo"]["W"].Cast<CheckBox>().CurrentValue)
+                                if (SpellMenu.comboMenu.GetBool("ComboW"))
                                 {
                                     if (W.IsReady())
                                     {
@@ -330,9 +273,9 @@ namespace iAhri
                     {
                         var target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
                         if (target.IsValidTarget() &&
-                            myHero.ManaPercent >= SubMenu["Harass"]["Mana"].Cast<Slider>().CurrentValue)
+                            myHero.ManaPercent >= SpellMenu.harassMenu.GetSlider("minHarass"))
                         {
-                            if (SubMenu["Harass"]["E"].Cast<CheckBox>().CurrentValue)
+                            if (SpellMenu.harassMenu.GetBool("HarassE"))
                             {
                                 CastE(target);
                             }
@@ -343,13 +286,13 @@ namespace iAhri
                             {
                                 return;
                             }
-                            if (SubMenu["Harass"]["Q"].Cast<CheckBox>().CurrentValue &&
+                            if (SpellMenu.harassMenu.GetBool("HarassQ") &&
                                 target.IsInRange(Player.Instance, Q.Range))
                             {
                                 CastQ(target);
                             }
                             if (W.IsReady() &&
-                                (SubMenu["Harass"]["W"].Cast<CheckBox>().CurrentValue &&
+                                (SpellMenu.harassMenu.GetBool("HarassW") &&
                                  target.IsInRange(Player.Instance, W.Range)))
                             {
                                 CastW(target);
@@ -360,14 +303,14 @@ namespace iAhri
 
                     private static void Flee()
                     {
-                    if (SubMenu["Flee"]["R"].Cast<CheckBox>().CurrentValue && R.IsReady())
+                    if (SpellMenu.fleeMenu.GetBool("FleeR") && R.IsReady())
                     return;
                         {
                         if (Player.Instance.HealthPercent <= 15 && Player.Instance.CountEnemiesInRange(R.Range) > 1)
                         {
                         R.Cast(mousePos);
                         }
-                        if (SubMenu["Flee"]["Q"].Cast<CheckBox>().CurrentValue && Q.IsReady())
+                        if (SpellMenu.fleeMenu.GetBool("FleeQ") && Q.IsReady())
                         {
                             var lastPos = Player.Instance.ServerPosition;
                             Q.Cast(lastPos);
@@ -376,55 +319,54 @@ namespace iAhri
         }
 
         private static void LaneClear()
+        {
+            {
+                var minions =
+                    EntityManager.MinionsAndMonsters.GetLaneMinions()
+                        .OrderBy(o => o.Health)
+                        .FirstOrDefault(c => c.IsValidTarget(Q.Range));
+                if (minions != null) return;
+                {
+
+                    if (W.IsReady() && minions.IsValidTarget(W.Range) && SpellMenu.clearMenu.GetBool("HarassW") &&
+                        Player.Instance.Level >=
+                        SpellMenu.clearMenu.GetSlider("farmTillLvL"))
                     {
+                        W.Cast();
+                    }
+
+
+                    if (Q.IsReady() && minions.IsValidTarget(Q.Range) && SpellMenu.clearMenu.GetBool("HarassQ") && SpellMenu.clearMenu.GetSlider("ClearMana") < Player.Instance.ManaPercent)
+                    {
+                        var heh =
+                            EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
+                                Player.Instance.ServerPosition, Q.Range, false).ToArray();
+                        if (heh.Length == 0) return;
+
+                        var farmLoc = EntityManager.MinionsAndMonsters.GetLineFarmLocation(heh, Q.Width, (int)Q.Range);
+                        if (farmLoc.HitNumber == SpellMenu.clearMenu.GetSlider("minHit"))
                         {
-                            var minions =
-                                EntityManager.MinionsAndMonsters.GetLaneMinions()
-                                    .OrderBy(o => o.Health)
-                                    .FirstOrDefault(c => c.IsValidTarget(Q.Range));
-                            if (minions != null) return;
-                            {
-
-                                if (W.IsReady() && minions.IsValidTarget(W.Range) && SubMenu["LaneClear"]["W"].Cast<CheckBox>().CurrentValue &&
-                                    ObjectManager.Player.Level >=
-                                    SubMenu["LaneClear"]["farmStartAtLevel"].Cast<Slider>().CurrentValue)
-                                    {
-                                    W.Cast();
-                                    }
-
-
-                                 if (Q.IsReady() && minions.IsValidTarget(Q.Range) && SubMenu["LaneClear"]["Q"].Cast<CheckBox>().CurrentValue && SubMenu["LaneClear"]["Mana"].Cast<Slider>().CurrentValue < Player.Instance.ManaPercent)
-                                 {
-                                        var heh =
-                                            EntityManager.MinionsAndMonsters.GetLaneMinions(EntityManager.UnitTeam.Enemy,
-                                                Player.Instance.ServerPosition, Q.Range, false).ToArray();
-                                    if (heh.Length == 0) return;
-
-                                        var farmLoc = EntityManager.MinionsAndMonsters.GetLineFarmLocation(heh, Q.Width, (int)Q.Range);
-                                        if (farmLoc.HitNumber == SubMenu["LaneClear"]["minimumHit"].Cast<Slider>().CurrentValue)
-                                        {
-                                            Q.Cast(farmLoc.CastPosition);
-                                        }
-                                    }
-                                }
-                            }
+                            Q.Cast(farmLoc.CastPosition);
                         }
-
+                    }
+                }
+            }
+        }
 
 
 
         private static void JungleClear()
                     {
-                        if (myHero.ManaPercent >= SubMenu["JungleClear"]["Mana"].Cast<Slider>().CurrentValue)
+                        if (myHero.ManaPercent >= SpellMenu.jglMenu.GetSlider("jglMana"))
                         {
                             foreach (
                                 var minion in
                                 EntityManager.MinionsAndMonsters.GetJungleMonsters(myHero.Position, 1000f)
                                     .Where(minion => minion.IsValidTarget() &&
                                                      myHero.ManaPercent >=
-                                                     SubMenu["JungleClear"]["Mana"].Cast<Slider>().CurrentValue))
+                                                     SpellMenu.jglMenu.GetSlider("jglMana")))
                             {
-                                if (SubMenu["JungleClear"]["E"].Cast<CheckBox>().CurrentValue)
+                                if (SpellMenu.jglMenu.GetBool("jglE"))
                                 {
                                     CastE(minion);
                                 }
@@ -435,11 +377,11 @@ namespace iAhri
                                 {
                                     return;
                                 }
-                                if (SubMenu["JungleClear"]["Q"].Cast<CheckBox>().CurrentValue)
+                                if (SpellMenu.jglMenu.GetBool("jglQ"))
                                 {
                                     CastQ(minion);
                                 }
-                                if (SubMenu["JungleClear"]["W"].Cast<CheckBox>().CurrentValue)
+                                if (SpellMenu.jglMenu.GetBool("jglW"))
                                 {
                                     CastW(minion);
                                 }
@@ -504,7 +446,7 @@ namespace iAhri
                         if (R.IsReady() && target.IsValidTarget())
                         {
                             var damageI = GetBestCombo(target);
-                            if (SubMenu["Combo"]["CatchQRPriority"].Cast<CheckBox>().CurrentValue)
+                            if (SpellMenu.comboMenu.GetBool("CatchQRPriority"))
                             {
                                 if ((float) _R["EndTime"] > 0)
                                 {
@@ -594,7 +536,7 @@ namespace iAhri
                                         if (ClosestToTargetLine.SegmentPoint.Distance(myHero.Position.To2D()) <
                                             myHero.MoveSpeed * TimeLeft)
                                         {
-                                            if (SubMenu["Misc"]["CatchQMovement"].Cast<CheckBox>().CurrentValue)
+                                            if (SpellMenu.miscMenu.GetBool("CatchQMovement"))
                                             {
                                                 //Chat.Print("4");
                                                 if (ClosestToHeroLine.SegmentPoint.Distance(r.CastPosition.To2D()) >
@@ -607,7 +549,7 @@ namespace iAhri
                                         else if (ClosestToTargetLine.SegmentPoint.Distance(myHero.Position.To2D()) <
                                                  450 + myHero.MoveSpeed * TimeLeft)
                                         {
-                                            if (SubMenu["Combo"]["CatchQR"].Cast<CheckBox>().CurrentValue &&
+                                            if (SpellMenu.comboMenu.GetBool("CatchQR") &&
                                                 Orbwalker.ActiveModesFlags.HasFlag(Orbwalker.ActiveModes.Combo))
                                             {
                                                 if (ClosestToHeroLine.SegmentPoint.Distance(r.CastPosition.To2D()) >
@@ -694,7 +636,7 @@ namespace iAhri
                         {
                             return;
                         }
-                        if (_Q["Object"] != null && SubMenu["Draw"]["Line"].Cast<CheckBox>().CurrentValue)
+                        if (_Q["Object"] != null && SpellMenu.drawMenu.GetBool("LineQ"))
                         {
                             var asd = (GameObject) _Q["Object"];
                             var p1 = Drawing.WorldToScreen(myHero.Position);
@@ -702,7 +644,7 @@ namespace iAhri
                             Drawing.DrawLine(p1, p2, Q.Width, Color.FromArgb(100, 255, 255, 255));
                         }
 
-                        if (!myHero.IsDead && SubMenu["Drawings"]["DrawQ"].Cast<CheckBox>().CurrentValue && Q.IsLearned)
+                        if (!myHero.IsDead && SpellMenu.drawMenu.GetBool("DrawQ") && Q.IsLearned)
                         {
                             {
                                 new Circle() {Color = Color.Lime, Radius = Q.Range}.Draw(ObjectManager.Player.Position);
@@ -712,7 +654,7 @@ namespace iAhri
 
                     private static void OnGapCloser(Obj_AI_Base sender, Gapcloser.GapcloserEventArgs args)
                     {
-                        if (SubMenu["Misc"]["Gapclose"].Cast<CheckBox>().CurrentValue)
+                        if (SpellMenu.miscMenu.GetBool("Gapclose"))
                         {
                             CastE(args.Sender);
                         }
@@ -721,7 +663,7 @@ namespace iAhri
                     private static void OnInterruptableSpell(Obj_AI_Base sender,
                         Interrupter.InterruptableSpellEventArgs args)
                     {
-                        if (SubMenu["Misc"]["Channeling"].Cast<CheckBox>().CurrentValue)
+                        if (SpellMenu.miscMenu.GetBool("Channeling"))
                         {
                             CastE(args.Sender);
                         }
